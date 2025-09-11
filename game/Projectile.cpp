@@ -1058,7 +1058,7 @@ idProjectile::Killed
 */
 void idProjectile::Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location ) {
 	if ( spawnArgs.GetBool( "detonate_on_death" ) ) {
-		Explode( NULL, true );
+		Fizzle();
 		physicsObj.ClearContacts();
 		physicsObj.PutToRest();
 	} else {
