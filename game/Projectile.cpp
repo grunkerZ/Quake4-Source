@@ -386,6 +386,17 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	ieSlicePercentage			= spawnArgs.GetFloat("ieSlicePercentage","0.0");
 	
 	projectileFlags.detonate_on_world	= spawnArgs.GetBool( "detonate_on_world" );
+
+	//my code
+
+	if (name.Find("napalm", 0, false) != -1) {
+		bounceCount = 2;
+		projectileFlags.detonate_on_world = false;
+		bounce = 1.0f;
+	}
+
+	//my code
+
 	projectileFlags.detonate_on_actor	= spawnArgs.GetBool( "detonate_on_actor" );
 	projectileFlags.randomShaderSpin	= spawnArgs.GetBool( "random_shader_spin" );
 	projectileFlags.detonate_on_bounce  = spawnArgs.GetBool( "detonate_on_bounce" );
