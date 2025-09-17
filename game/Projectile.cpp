@@ -390,7 +390,7 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	//my code
 
 	if (name.Find("napalm", 0, false) != -1) {
-		bounceCount = 2;
+		bounceCount = 7;
 		projectileFlags.detonate_on_world = false;
 		bounce = 1.0f;
 	}
