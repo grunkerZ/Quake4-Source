@@ -99,6 +99,7 @@
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <AdditionalIncludeDirectories>$(SolutionDir)game;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalOptions>/FIXED:no %(AdditionalOptions)</AdditionalOptions>
@@ -141,6 +142,7 @@
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <AdditionalIncludeDirectories>$(SolutionDir)game;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(IntDir)idLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -188,6 +190,7 @@
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <AdditionalIncludeDirectories>$(SolutionDir)game;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalOptions>/MACHINE:I386 /fixed:no %(AdditionalOptions)</AdditionalOptions>
@@ -374,6 +377,7 @@
     <ClCompile Include="game\weapon\WeaponRocketLauncher.cpp" />
     <ClCompile Include="game\weapon\WeaponShotgun.cpp" />
     <ClCompile Include="game\WorldSpawn.cpp" />
+    <ClCompile Include="WeaponIngredient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game\Actor.h" />
@@ -480,6 +484,7 @@
     <ClInclude Include="game\vehicle\VehicleStatic.h" />
     <ClInclude Include="game\Weapon.h" />
     <ClInclude Include="game\WorldSpawn.h" />
+    <ClInclude Include="WeaponIngredient.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="game\Game.def" />
