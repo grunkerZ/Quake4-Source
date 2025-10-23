@@ -1027,6 +1027,12 @@ void rvWeapon::Think ( void ) {
 	// Update the zoom variable before updating the script
 	wsfl.zoom = owner->IsZoomed( );
 
+
+	if (spawnArgs.GetBool("is_ingredient") && status == WP_OUTOFAMMO) {
+		SetStatus(WP_READY);
+	}
+
+
 	// Only update the state loop on new frames
  	if ( gameLocal.isNewFrame ) {
 		stateThread.Execute( );

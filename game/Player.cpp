@@ -3366,9 +3366,16 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	if (weapDef && weapDef->dict.GetBool("is_ingredient")) {
 
 		int ammoIndex = rvWeapon::GetAmmoIndexForName(weapDef->dict.GetString("ammoType"));
-		_hud->SetStateInt("ammo_in_clip", inventory.ammo[ammoIndex]);
-		_hud->SetStateInt("ammo_in_inventory", 0);
+		
+		int currentIngredientCount = (ammoIndex != -1) ? inventory.ammo[ammoIndex] : 0;
+		
+		_hud->SetStateInt("player_ammo", currentIngredientCount);
+		_hud->SetStateInt("player_totalammo", 0);
+		_hud->SetStateInt("player_clip_size", 99);
+		_hud->SetStateFloat("player_ammopct", idMath::ClampFloat(0.0f, 1, (float)currentIngredientCount / (float)99));
 		_hud->SetStateString("ammoname", "Amount");
+		_hud->SetStateBool("player_ammo_empty", (currentIngredientCount == 0));
+
 	}
 	else {
 
