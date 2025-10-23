@@ -265,6 +265,21 @@ public:
 //	idList<rvDatabaseEntry>	database;
 	
 	int						secretAreasDiscovered;
+
+
+	
+
+};
+
+struct IngredientTask {
+	idStr name;
+	int required;
+};
+
+struct	CurrentOrder {
+	idStr recipeName;
+	idList<IngredientTask> tasks;
+	bool active;
 };
 
 class idPlayer : public idActor {
@@ -743,6 +758,12 @@ public:
 	void					GUIMainNotice( const char* message, bool persist = false );
 	void					GUIFragNotice( const char* message, bool persist = false );
 
+	void					SetCurrentOrder(const idDeclEntityDef* recipeDef);
+	void					ClearCurrentOrder(void);
+	void					CheckInteractionPromt(idUserInterface* _hud);
+	void					UpdateCookingHud(idUserInterface* _hud);
+
+
 	virtual bool			EnterVehicle		( idEntity* vehicle );
 	virtual bool			ExitVehicle			( bool force = false );
 
@@ -1004,6 +1025,8 @@ private:
 	int						oldInventoryWeapons;
 
 	const idDeclEntityDef*	itemCosts;
+
+	CurrentOrder			currentOrder;
 
 	bool					WantSmoothing( void ) const;
 	void					PredictionErrorDecay( void );
