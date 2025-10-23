@@ -337,6 +337,8 @@ protected:
 	jointHandle_t			flashlightJoint;
 	idVec3					flashlightOffset;
 
+	idList<const idDeclEntityDef*>	recipesDefs;
+
 // bdube: death force
 	int						deathPushTime;
 	idVec3					deathPushForce;
@@ -398,6 +400,10 @@ private:
 	void					Event_DamageOverTime ( int endTime, int interval, idEntity *inflictor, idEntity *attacker, idVec3 &dir, const char *damageDefName, const float damageScale, int location );
 	virtual void			Event_DamageOverTimeEffect	( int endTime, int interval, const char *damageDefName );
 	void					Event_JointCrawlEffect ( const char *effectKeyName, float crawlSecs );
+
+	void					ParseRecipes(void);
+
+	void					Event_Activate(idActor* activator);
 
 	CLASS_STATES_PROTOTYPE ( idActor );
 

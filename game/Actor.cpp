@@ -398,6 +398,8 @@ CLASS_DECLARATION( idAFEntity_Gibbable, idActor )
 	EVENT( EV_JointCrawlEffect,			idActor::Event_JointCrawlEffect )
 // RAVEN END
 
+
+
 END_CLASS
 
 CLASS_STATES_DECLARATION ( idActor )
@@ -660,6 +662,16 @@ void idActor::Spawn( void ) {
 // RAVEN END
 
 	FinishSetup();
+
+	if (spawnArgs.GetBool("is_orderer")) {
+		health = 99999;
+		fl.takedamage = false;
+		fl.notarget = true;
+
+		ParseRecipes();
+
+	}
+
 }
 
 /*
@@ -3852,4 +3864,27 @@ void idActor::GuidedProjectileIncoming( idGuidedProjectile *projectile )
 		}
 	}
 }
+
+void idActor::ParseRecipes(void) {
+	recipesDefs.Clear();
+
+	int numDefs = declManager->GetNumDecls(DECL_ENTITYDEF);
+
+	for (int i = 0; i < numDefs; i++) {
+
+		const idDecl* decl = declManager->DeclByIndex(DECL_ENTITYDEF, i, false);
+		if (!decl) {
+			continue;
+		}
+
+		const idDeclEntityDef* def = static_cast<const idDeclEntityDef*>(decl);
+
+		if (def && def->GetName() && idStr::Icmpn(def->GetName(), "recipie_", 8)==0)  {
+			recipesDefs.Append(def);
+		}
+	}
+
+
+}
+
 // RAVEN END

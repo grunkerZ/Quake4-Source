@@ -377,7 +377,6 @@
     <ClCompile Include="game\weapon\WeaponRocketLauncher.cpp" />
     <ClCompile Include="game\weapon\WeaponShotgun.cpp" />
     <ClCompile Include="game\WorldSpawn.cpp" />
-    <ClCompile Include="WeaponIngredient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game\Actor.h" />
@@ -484,7 +483,6 @@
     <ClInclude Include="game\vehicle\VehicleStatic.h" />
     <ClInclude Include="game\Weapon.h" />
     <ClInclude Include="game\WorldSpawn.h" />
-    <ClInclude Include="WeaponIngredient.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="game\Game.def" />

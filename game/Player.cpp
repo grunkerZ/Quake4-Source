@@ -3358,28 +3358,45 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	inclip		= weapon->AmmoInClip();
 	ammoamount	= weapon->AmmoAvailable();
 
-	if ( ammoamount < 0 ) {
-		// show infinite ammo
-		_hud->SetStateString( "player_ammo", "-1" );
-		_hud->SetStateString( "player_totalammo", "-1" );
-		_hud->SetStateFloat ( "player_ammopct", 1.0f );
-	} else if ( weapon->ClipSize ( ) && !gameLocal.isMultiplayer ) {
-		_hud->SetStateInt ( "player_clip_size", weapon->ClipSize() );
-		_hud->SetStateFloat ( "player_ammopct", (float)inclip / (float)weapon->ClipSize ( ) );
-		if ( weapon->ClipSize ( )==1) {
-			_hud->SetStateInt ( "player_totalammo", ammoamount );
-		}
-		else {
-			_hud->SetStateInt ( "player_totalammo", ammoamount - inclip );
-		}
-		_hud->SetStateInt ( "player_ammo", inclip );
-	} else {
-		_hud->SetStateFloat ( "player_ammopct", (float)ammoamount / (float)weapon->maxAmmo );
-		_hud->SetStateInt ( "player_totalammo", ammoamount );
-		_hud->SetStateInt ( "player_ammo", -1 );
-	} 
+	const idDeclEntityDef* weapDef = GetWeaponDef(currentWeapon);
 
-	_hud->SetStateBool( "player_ammo_empty", ( ammoamount == 0 ) );
+	if (weapDef && weapDef->dict.GetBool("is_ingredient")) {
+
+		int ammoIndex = inventory.AmmoIndexForWeaponClass(weapDef->dict.GetString("ammo_type"));
+		_hud->SetStateInt("ammo_in_clip", inventory.ammo[ammoIndex]);
+		_hud->SetStateInt("ammo_in_inventory", 0);
+		_hud->SetStateString("ammoname", "Amount");
+	}
+	else {
+
+		if ( ammoamount < 0 ) {
+			// show infinite ammo
+			_hud->SetStateString( "player_ammo", "-1" );
+			_hud->SetStateString( "player_totalammo", "-1" );
+			_hud->SetStateFloat ( "player_ammopct", 1.0f );
+		} else if ( weapon->ClipSize ( ) && !gameLocal.isMultiplayer ) {
+			_hud->SetStateInt ( "player_clip_size", weapon->ClipSize() );
+			_hud->SetStateFloat ( "player_ammopct", (float)inclip / (float)weapon->ClipSize ( ) );
+			if ( weapon->ClipSize ( )==1) {
+				_hud->SetStateInt ( "player_totalammo", ammoamount );
+			}
+			else {
+				_hud->SetStateInt ( "player_totalammo", ammoamount - inclip );
+			}
+			_hud->SetStateInt ( "player_ammo", inclip );
+		} else {
+			_hud->SetStateFloat ( "player_ammopct", (float)ammoamount / (float)weapon->maxAmmo );
+			_hud->SetStateInt ( "player_totalammo", ammoamount );
+			_hud->SetStateInt ( "player_ammo", -1 );
+		} 
+
+		_hud->SetStateBool( "player_ammo_empty", ( ammoamount == 0 ) );
+
+	
+
+
+	}
+
 }
 
 /*
@@ -3409,7 +3426,7 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	}
 	
 	// Boss bar
-	if ( _hud->State().GetInt ( "boss_health", "-1" ) != (bossEnemy ? bossEnemy->health : -1) ) {
+	if ( _hud->State().GetInt ( "boss_", "-1" ) != (bossEnemy ? bossEnemy->health : -1) ) {
 		if ( !bossEnemy || bossEnemy->health <= 0 ) {
 			bossEnemy = NULL;
 			_hud->SetStateInt ( "boss_health", -1 );
