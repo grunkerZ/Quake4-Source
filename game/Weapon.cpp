@@ -1774,6 +1774,11 @@ NOTE: this is only for impulse-triggered reload, auto reload is scripted
 ================
 */
 void rvWeapon::Reload( void ) {
+	if (spawnArgs.GetBool("is_ingredient")) {
+		wsfl.reload = false;
+		return;
+	}
+
 	if ( clipSize ) {
 		wsfl.reload = true;
 	}
@@ -1900,6 +1905,12 @@ rvWeapon::BeginAttack
 ================
 */
 void rvWeapon::BeginAttack( void ) {
+	
+	if (spawnArgs.GetBool("is_ingredient")) {
+		wsfl.attack = false;
+		return;
+	}
+	
 	wsfl.attack = true;
 
 	if ( status != WP_OUTOFAMMO ) {
@@ -1913,6 +1924,11 @@ rvWeapon::EndAttack
 ================
 */
 void rvWeapon::EndAttack( void ) {
+	if (spawnArgs.GetBool("is_ingredient")) {
+		wsfl.attack = false;
+		return;
+	}
+	
 	wsfl.attack = false;
 }
 
@@ -2288,6 +2304,38 @@ int rvWeapon::GetAmmoIndexForName( const char *ammoname ) {
 	const idDict *ammoDict;
 
 	assert( ammoname );
+
+	if (!idStr::Icmp(ammoname, "Tomato")) {
+		return 1;
+	}
+	else if(!idStr::Icmp(ammoname,"Cheese")){
+		return 2;
+	}
+	else if (!idStr::Icmp(ammoname, "Beef")) {
+		return 3;
+	}
+	else if (!idStr::Icmp(ammoname, "Potato")) {
+		return 4;
+	}
+	else if (!idStr::Icmp(ammoname, "Chicken")) {
+		return 5;
+	}
+	else if (!idStr::Icmp(ammoname, "Egg")) {
+		return 6;
+	}
+	else if (!idStr::Icmp(ammoname, "frozenCookie")) {
+		return 7;
+	}
+	else if (!idStr::Icmp(ammoname, "Bread")) {
+		return 8;
+	}
+	else if (!idStr::Icmp(ammoname, "Rice")) {
+		return 9;
+	}
+	else if (!idStr::Icmp(ammoname, "Greens")) {
+		return 10;
+	}
+
 
 	ammoDict = gameLocal.FindEntityDefDict( "ammo_types", false );
 	if ( !ammoDict ) {

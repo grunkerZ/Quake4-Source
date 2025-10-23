@@ -3365,7 +3365,7 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 
 	if (weapDef && weapDef->dict.GetBool("is_ingredient")) {
 
-		int ammoIndex = inventory.AmmoIndexForWeaponClass(weapDef->dict.GetString("ammo_type"));
+		int ammoIndex = rvWeapon::GetAmmoIndexForName(weapDef->dict.GetString("ammoType"));
 		_hud->SetStateInt("ammo_in_clip", inventory.ammo[ammoIndex]);
 		_hud->SetStateInt("ammo_in_inventory", 0);
 		_hud->SetStateString("ammoname", "Amount");

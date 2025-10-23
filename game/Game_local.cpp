@@ -4983,6 +4983,7 @@ idGameLocal::FindEntityDef
 const idDeclEntityDef *idGameLocal::FindEntityDef( const char *name, bool makeDefault ) const {
 	TIME_THIS_SCOPE( __FUNCLINE__);
 	const idDecl *decl = NULL;
+
 	if ( isMultiplayer ) {
 		decl = declManager->FindType( DECL_ENTITYDEF, va( "%s_mp", name ), false );
 	}
