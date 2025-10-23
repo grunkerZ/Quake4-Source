@@ -1077,6 +1077,9 @@ idPlayer::idPlayer
 ==============
 */
 idPlayer::idPlayer() {
+
+	currentOrder.active = false;
+
 	memset( &usercmd, 0, sizeof( usercmd ) );
 
 	alreadyDidTeamAnnouncerSound = false;
@@ -9180,6 +9183,9 @@ void idPlayer::UpdateHud( void ) {
 		return;
 	}
 
+	CheckInteractionPromt(hud);
+	UpdateCookingHud(hud);
+
 	if ( entityNumber != gameLocal.localClientNum ) {
 		return;
 	}
@@ -14028,34 +14034,34 @@ void idPlayer::GiveCash( float cashDeltaAmount )
 
 	float oldCash = buyMenuCash;
 	buyMenuCash += cashDeltaAmount;
-	ClampCash( minCash, maxCash );
+	ClampCash(minCash, maxCash);
 
-	if( (int)buyMenuCash != (int)oldCash )
+	if ((int)buyMenuCash != (int)oldCash)
 	{
 		gameLocal.mpGame.RedrawLocalBuyMenu();
 	}
 
-	if( (int)buyMenuCash > (int)oldCash )
+	if ((int)buyMenuCash > (int)oldCash)
 	{
 		// Play the "get cash" sound
 //		gameLocal.GetLocalPlayer()->StartSound( "snd_buying_givecash", SND_CHANNEL_ANY, 0, false, NULL );
 	}
-	else if( (int)buyMenuCash < (int)oldCash )
+	else if ((int)buyMenuCash < (int)oldCash)
 	{
 		// Play the "lose cash" sound
 //		gameLocal.GetLocalPlayer()->StartSound( "snd_buying_givecash", SND_CHANNEL_ANY, 0, false, NULL );
 	}
 }
 
-void idPlayer::SetCash( float newCashAmount )
+void idPlayer::SetCash(float newCashAmount)
 {
 	//int minCash = gameLocal.mpGame.mpBuyingManager.GetIntValueForKey( "playerMinCash", 0 );
 	//int maxCash = gameLocal.mpGame.mpBuyingManager.GetIntValueForKey( "playerMaxCash", 0 );
-	float minCash = (float) gameLocal.serverInfo.GetInt("si_buyModeMinCredits");
-	float maxCash = (float) gameLocal.serverInfo.GetInt("si_buyModeMaxCredits");
+	float minCash = (float)gameLocal.serverInfo.GetInt("si_buyModeMinCredits");
+	float maxCash = (float)gameLocal.serverInfo.GetInt("si_buyModeMaxCredits");
 
 	buyMenuCash = newCashAmount;
-	ClampCash( minCash, maxCash );
+	ClampCash(minCash, maxCash);
 }
 
 void idPlayer::ResetCash()
@@ -14064,10 +14070,10 @@ void idPlayer::ResetCash()
 	//int maxCash = gameLocal.mpGame.mpBuyingManager.GetIntValueForKey( "playerMaxCash", 0 );
 	//buyMenuCash = gameLocal.mpGame.mpBuyingManager.GetIntValueForKey( "playerStartingCash", 0 );
 
-	float minCash = (float) gameLocal.serverInfo.GetInt("si_buyModeMinCredits");
-	float maxCash = (float) gameLocal.serverInfo.GetInt("si_buyModeMaxCredits");
-	buyMenuCash = (float) gameLocal.serverInfo.GetInt("si_buyModeStartingCredits");
-	ClampCash( minCash, maxCash );
+	float minCash = (float)gameLocal.serverInfo.GetInt("si_buyModeMinCredits");
+	float maxCash = (float)gameLocal.serverInfo.GetInt("si_buyModeMaxCredits");
+	buyMenuCash = (float)gameLocal.serverInfo.GetInt("si_buyModeStartingCredits");
+	ClampCash(minCash, maxCash);
 }
 
 /**
@@ -14078,13 +14084,13 @@ void idPlayer::ResetCash()
 int idPlayer::CanSelectWeapon(const char* weaponName)
 {
 	int weaponNum = -1;
-	if(weaponName == NULL)
+	if (weaponName == NULL)
 		return weaponNum;
 
-	for( int i = 0; i < MAX_WEAPONS; i++ ) {
-		if ( inventory.weapons & ( 1 << i ) ) {
-			const char *weap = spawnArgs.GetString( va( "def_weapon%d", i ) );
-			if ( !idStr::Cmp( weap, weaponName ) ) {
+	for (int i = 0; i < MAX_WEAPONS; i++) {
+		if (inventory.weapons & (1 << i)) {
+			const char* weap = spawnArgs.GetString(va("def_weapon%d", i));
+			if (!idStr::Cmp(weap, weaponName)) {
 				weaponNum = i;
 				break;
 			}
@@ -14092,6 +14098,131 @@ int idPlayer::CanSelectWeapon(const char* weaponName)
 	}
 
 	return weaponNum;
+}
+
+void idPlayer::SetCurrentOrder(const idDeclEntityDef* recipeDef) {
+	ClearCurrentOrder();
+
+	if (!recipeDef) {
+		return;
+	}
+
+	currentOrder.recipeName = recipeDef->dict.GetString("inv_name", "Unknown");
+
+	const char* ingredientsStr = recipeDef->dict.GetString("ingredients");
+	if (!ingredientsStr || !*ingredientsStr) {
+		currentOrder.active = false;
+		return;
+	}
+
+	idLexer lexer(ingredientsStr, idStr::Length(ingredientsStr), "recipe_parser", LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS);
+
+	idToken token;
+	idToken token2;
+
+	while (lexer.ReadToken(&token)) {
+		if (token.type !=TT_STRING) {
+			break;
+		}
+
+		IngredientTask_t newTask;
+		newTask.name = token;
+
+		if (!lexer.ExpectTokenString(",")) {
+			break;
+		}
+
+		if(!lexer.ReadToken(&token2)||token2.type!=TT_NUMBER||token2.subtype!=TT_INTEGER){
+			break;
+		}
+
+		newTask.required = token2.GetIntValue();
+
+		if (newTask.required <= 0) {
+			continue;
+		}
+
+		currentOrder.tasks.Append(newTask);
+
+		if (!lexer.CheckTokenString(",")) {
+			break;
+		}
+
+	}
+
+	currentOrder.active = (currentOrder.tasks.Num() > 0);
+
+
+
+	
+}
+
+void idPlayer::ClearCurrentOrder(void) {
+	currentOrder.tasks.Clear();
+	currentOrder.recipeName = "";
+	currentOrder.active = false;
+}
+
+void idPlayer::CheckInteractionPromt(idUserInterface* _hud) {
+	if (!_hud) {
+		return;
+	}
+	trace_t trace;
+	idVec3 start = GetEyePosition();
+	idVec3 end = start + viewAngles.ToForward() * 80;
+
+	idStr promptText = "";
+
+	gameLocal.TracePoint(this, trace, start, end, MASK_SHOT_BOUNDINGBOX, this);
+
+	if (trace.fraction < 1.0f) {
+		idEntity* ent = gameLocal.entities[trace.c.entityNum];
+
+		if (ent && ent->spawnArgs.GetBool("is_orderer")) {
+			promptText = "Take an Order";
+		}
+	}
+
+	_hud->GetStateString("interaction_promt", promptText);
+
+}
+
+void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
+	if (!hud) {
+		return;
+	}
+
+	if (!currentOrder.active) {
+		_hud->SetStateString("recipe_name", "");
+		_hud->SetStateString("recipe_line_1", "");
+		_hud->SetStateString("recipe_line_2", "");
+		_hud->SetStateString("recipe_line_3", "");
+		_hud->SetStateString("recipe_line_4", "");
+		_hud->SetStateString("recipe_line_5", "");
+		return;
+	}
+
+	_hud->SetStateString("recipe_name", currentOrder.recipeName);
+
+	for (int i = 0; i < currentOrder.tasks.Num() && i < 5; i++) {
+		IngredientTask_t& task = currentOrder.tasks[i];
+
+		int ammoIndex = inventory.AmmoIndexForWeaponClass(task.name);
+		int currentAmount = 0;
+
+		if (ammoIndex !=-1) {
+			currentAmount = inventory.ammo[ammoIndex];
+		}
+
+		idStr line = va("%s %d/%d", task.name.c_str(), currentAmount, task.required);
+		_hud->SetStateString(va("recipe_line_%d", i + 1), line);
+
+	}
+
+	for (int i = 0; i < 5; i++) {
+		_hud->SetStateString(va("recipe_line_%d", i + 1), "");
+	}
+
 }
 
 // RITUAL END

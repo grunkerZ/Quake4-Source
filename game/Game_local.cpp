@@ -507,6 +507,8 @@ void idGameLocal::Init( void ) {
 #endif  // RV_BINARYDECLS
 // RAVEN END
 
+	
+
 	cmdSystem->AddCommand( "listModelDefs", idListDecls_f<DECL_MODELDEF>, CMD_FL_SYSTEM|CMD_FL_GAME, "lists model defs" );
 	cmdSystem->AddCommand( "printModelDefs", idPrintDecls_f<DECL_MODELDEF>, CMD_FL_SYSTEM|CMD_FL_GAME, "prints a model def", idCmdSystem::ArgCompletion_Decl<DECL_MODELDEF> );
 
@@ -1845,6 +1847,26 @@ void idGameLocal::MapPopulate( int instance ) {
 // jnewquist: Tag scope and callees to track allocations using "new".
 	MEM_SCOPED_TAG(tag,MA_ENTITY);
 // RAVEN END
+
+	recipesDefs.Clear();
+
+	int numEntityDefs = declManager->GetNumDecls(DECL_ENTITYDEF);
+
+	for (int i = 0; i < numEntityDefs; i++) {
+		const idDecl* decl = declManager->DeclByIndex(DECL_ENTITYDEF, i, false);
+		if (!decl) {
+			continue;
+		}
+
+		const idDeclEntityDef* entityDef = static_cast<const idDeclEntityDef*>(decl);
+		if (!entityDef) {
+			continue;
+		}
+		if (entityDef->dict.GetBool("is_recipe")) {
+			recipesDefs.Append(entityDef);
+		}
+	}
+
 
 	if ( isMultiplayer ) {
 		cvarSystem->SetCVarBool( "r_skipSpecular", false );

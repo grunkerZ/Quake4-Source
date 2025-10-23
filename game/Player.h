@@ -271,16 +271,18 @@ public:
 
 };
 
-struct IngredientTask {
+typedef struct IngredientTask {
 	idStr name;
 	int required;
-};
+}IngredientTask_t;
 
-struct	CurrentOrder {
+typedef struct	CurrentOrder {
 	idStr recipeName;
 	idList<IngredientTask> tasks;
 	bool active;
-};
+}CurrentOrder_t;
+
+
 
 class idPlayer : public idActor {
 public:
@@ -821,6 +823,9 @@ protected:
 	void					SetupHead( const char* modelKeyName = "", idVec3 headOffset = idVec3(0, 0, 0) );
 
 private:
+
+	CurrentOrder_t			currentOrder;
+
 	float					vehicleCameraDist;
 
 	jointHandle_t			hipJoint;
@@ -1025,8 +1030,6 @@ private:
 	int						oldInventoryWeapons;
 
 	const idDeclEntityDef*	itemCosts;
-
-	CurrentOrder			currentOrder;
 
 	bool					WantSmoothing( void ) const;
 	void					PredictionErrorDecay( void );

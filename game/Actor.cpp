@@ -668,7 +668,6 @@ void idActor::Spawn( void ) {
 		fl.takedamage = false;
 		fl.notarget = true;
 
-		ParseRecipes();
 
 	}
 
@@ -3937,7 +3936,7 @@ void idActor::Event_Activate(idActor* activator) {
 		const idDeclEntityDef* randomRecipe = recipesDefs[randomIndex];
 
 		if (player && randomRecipe) {
-			player->setCurrentOrder(randomRecipe);
+			player->SetCurrentOrder(randomRecipe);
 		}
 		return;
 	}
