@@ -398,7 +398,7 @@ CLASS_DECLARATION( idAFEntity_Gibbable, idActor )
 	EVENT( EV_JointCrawlEffect,			idActor::Event_JointCrawlEffect )
 // RAVEN END
 
-
+	EVENT( EV_Activate,					idActor::Event_Activate )
 
 END_CLASS
 
@@ -897,6 +897,18 @@ void idActor::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( deathPushTime );
 	savefile->WriteVec3( deathPushForce );
 	savefile->WriteJoint( deathPushJoint );
+
+	if (spawnArgs.GetBool("is_orderer")) {
+		int num = recipesDefs.Num();
+		savefile->WriteInt(num);
+		for (int i = 0; i < num; i++) {
+			savefile->WriteInt(recipesDefs[i]->Index());
+		}
+	}
+	else {
+		savefile->WriteInt(0);
+	}
+
 }
 
 /*
@@ -1020,6 +1032,31 @@ void idActor::Restore( idRestoreGame *savefile ) {
 // mekberg: update this
 	FlashlightUpdate( );
 // RAVEN END
+
+	savefile->ReadInt(num);
+	if (num > 0) {
+		recipesDefs.Clear();
+		recipesDefs.SetGranularity(1);
+		recipesDefs.Resize(num);
+		for (i = 0; i < num; i++) {
+			int defIndex;
+			savefile->ReadInt(defIndex);
+			const idDecl* decl = declManager->DeclByIndex(DECL_ENTITYDEF, defIndex,false);
+
+			if (decl && decl->GetType()==DECL_ENTITYDEF) {
+
+				recipesDefs[i] = static_cast<const idDeclEntityDef*>(decl);
+
+			}
+			else {
+				recipesDefs[NULL];
+			}
+		}
+	}
+	else {
+		recipesDefs.Clear();
+	}
+
 }
 
 /*
@@ -3884,6 +3921,26 @@ void idActor::ParseRecipes(void) {
 		}
 	}
 
+
+}
+
+void idActor::Event_Activate(idActor* activator) {
+
+	if (spawnArgs.GetBool("is_orderer")) {
+		if (!activator || !activator->IsType(idPlayer::GetClassType())) {
+			return;
+		}
+
+		idPlayer* player = static_cast<idPlayer*>(activator);
+
+		int randomIndex = gameLocal.random.RandomInt(recipesDefs.Num());
+		const idDeclEntityDef* randomRecipe = recipesDefs[randomIndex];
+
+		if (player && randomRecipe) {
+			player->setCurrentOrder(randomRecipe);
+		}
+		return;
+	}
 
 }
 
