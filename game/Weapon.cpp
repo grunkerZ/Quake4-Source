@@ -2319,6 +2319,14 @@ int rvWeapon::GetAmmoIndexForName( const char *ammoname ) {
 
 	assert( ammoname );
 
+
+	idStr strippedName = ammoname;
+	if (strippedName.Icmpn("ammo_", 5) == 0) {
+		strippedName.StripLeading("ammo_");
+	}
+
+	ammoname = strippedName.c_str();
+
 	if (!idStr::Icmp(ammoname, "Tomato")) {
 		return 1;
 	}
