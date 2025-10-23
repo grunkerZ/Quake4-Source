@@ -768,6 +768,14 @@ void rvWeapon::InitViewModel( void ) {
 	guiLightJointView	= viewAnimator->GetJointHandle( spawnArgs.GetString ( "joint_view_guiLight", "guiLight" ) );
 	flashlightJointView = viewAnimator->GetJointHandle( spawnArgs.GetString ( "joint_view_flashlight", "flashlight" ) );
 
+	if (spawnArgs.GetBool("is_ingredient")) {
+		barrelJointView = INVALID_JOINT;
+		flashJointView = INVALID_JOINT;
+		ejectJointView = INVALID_JOINT;
+		guiLightJointView = INVALID_JOINT;
+		flashlightJointView = INVALID_JOINT;
+	}
+
 	// Eject offset
 	spawnArgs.GetVector ( "ejectOffset", "0 0 0", ejectOffset );
 
@@ -2370,10 +2378,27 @@ rvWeapon::GetAmmoNameForNum
 */
 const char* rvWeapon::GetAmmoNameForIndex( int index ) {
 	int i;
+
+	
+
 	int num;
 	const idDict *ammoDict;
 	const idKeyValue *kv;
 	char text[ 32 ];
+
+	switch (index) {
+	case 1: return "Tomato";
+	case 2: return "Cheese";
+	case 3: return "Beef";
+	case 4: return "Potato";
+	case 5: return "Chicken";
+	case 6: return "Egg";
+	case 7: return "frozenCookie";
+	case 8: return "Bread";
+	case 9: return "Rice";
+	case 10: return "Greens";
+	}
+
 
 	ammoDict = gameLocal.FindEntityDefDict( "ammo_types", false );
 	if ( !ammoDict ) {

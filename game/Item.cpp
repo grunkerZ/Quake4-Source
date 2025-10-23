@@ -393,6 +393,15 @@ void idItem::Spawn( void ) {
 	idVec3		vSize;
 	idBounds	bounds(vec3_origin);
 
+	const char* modelName = spawnArgs.GetString("model");
+	if (modelName && *modelName) {
+		SetModel(modelName);
+	}
+
+	if (!renderEntity.hModel) {
+		SetModel("models/characters/choppable_marine/right_leg.md5mesh");
+	}
+
 	// check for triggerbounds, which allows for non-square triggers (useful for, say, a CTF flag)	
 	if ( spawnArgs.GetVector( "triggerbounds", "16 16 16", vSize )) {
 		bounds.AddPoint(idVec3( vSize.x*0.5f,  vSize.y*0.5f, 0.0f));
@@ -405,6 +414,8 @@ void idItem::Spawn( void ) {
 		bounds.ExpandSelf( tsize );
 	}
 
+	
+	
 // RAVEN BEGIN
 // mwhitlock: Dynamic memory consolidation
 	RV_PUSH_HEAP_MEM(this);
@@ -975,6 +986,13 @@ idItem::Event_Trigger
 void idItem::Event_Trigger( idEntity *activator ) {
 	if ( !canPickUp && spawnArgs.GetBool( "triggerFirst" ) ) {
 		canPickUp = true;
+		return;
+	}
+
+	if (spawnArgs.GetBool("usable") && spawnArgs.GetBool("trigger_first") && !spawnArgs.GetBool("dropped")) {
+		if (activator && activator->IsType(idPlayer::GetClassType())) {
+			Pickup(static_cast<idPlayer *>(activator));		
+		}
 		return;
 	}
 
