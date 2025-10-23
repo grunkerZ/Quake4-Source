@@ -1501,6 +1501,13 @@ idPlayer::Init
 void idPlayer::Init( void ) {
 	const char			*value;
 	
+	idStr temp;
+	cookingHud = NULL;
+
+	if (spawnArgs.GetString("gui_cooking", "", temp)) {
+		cookingHud = uiManager->FindGui(temp, true, false, true);
+	}
+
 	noclip					= false;
 	godmode					= false;
 	godmodeDamage			= 0;
@@ -3419,6 +3426,31 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	
 	assert ( _hud );
 
+	idStr prompt = "";
+	if (focusType == FOCUS_USABLE && focusEnt.IsValid()) {
+		idEntity* ent = focusEnt.GetEntity();
+		if (ent) {
+			if (ent->spawnArgs.GetBool("is_orderer")) {
+				prompt = "Take Order";
+			}
+			else if (ent->IsType(idItem::GetClassType())) {
+				const idKeyValue* kv = ent->spawnArgs.MatchPrefix("inv_ammo");
+				if (kv) {
+					prompt = "Take ";
+					prompt += ent->spawnArgs.GetString("inv_name", "Ingredient");
+				}
+			}
+		}
+	}
+
+	if (_hud) {
+		_hud->SetStateString("interaction_prompt", prompt);
+	}
+	if (cookingHud) {
+		cookingHud->SetStateString("interaction_prompt", prompt);
+		cookingHud->SetStateString("INPUT_KEY", "E");
+	}
+
 	temp = _hud->State().GetInt ( "player_health", "-1" );
 	if ( temp != health ) {		
 		_hud->SetStateInt   ( "player_healthDelta", temp == -1 ? 0 : (temp - health) );
@@ -3646,6 +3678,19 @@ idPlayer::DrawHUD
 void idPlayer::DrawHUD( idUserInterface *_hud ) {
 	idUserInterface * cursor = idPlayer::cursor;
  
+	bool shouldDraw = true;
+	gameLocal.Printf("DrawHUD: start\n");
+	if (disableHud) { gameLocal.Printf("DrawHUD: disableHud=True\n"); shouldDraw = false; }
+	if (influenceActive != INFLUENCE_NONE) { gameLocal.Printf("DrawHUD: influenceActive!=Influence_None\n"); shouldDraw = false; }
+	if (privateCameraView) { gameLocal.Printf("DrawHUD: privateCameraView!=NULL\n"); shouldDraw = false; }
+	if (!_hud) { gameLocal.Printf("DrawHUD: _hud is NULL\n"); shouldDraw = false; }
+	if (!g_showHud.GetBool()) { gameLocal.Printf("DrawHUD: g_showHud=false\n"); shouldDraw = false; }
+	if (!shouldDraw) {
+		return;
+	}
+	gameLocal.Printf("DrawHUD: checks passed\n");
+
+
 	if ( !gameLocal.GetLocalPlayer() ) {
 		// server netdemo
 		if ( gameLocal.GetDemoState() == DEMO_PLAYING && gameLocal.IsServerDemo() && gameLocal.GetDemoFollowClient() == entityNumber ) {
@@ -3654,6 +3699,15 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 				cursor->HandleNamedEvent( "showCrossCombat" );
 			}
 		}		
+
+		if (cookingHud) {
+			gameLocal.Printf("DrawHUD: Cookinghud exists, calling UpdateCookingHud\n");
+			UpdateCookingHud(cookingHud);
+		}
+		else {
+			gameLocal.Printf("DrawHUD: Cookinghud is NULL\n");
+		}
+
 	} else {
 
 		if ( team != gameLocal.GetLocalPlayer()->hudTeam && _hud ) {
@@ -3676,6 +3730,7 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 	}
 
 	if ( objectiveSystemOpen ) {
+		gameLocal.Printf("DrawHUD: objectiveSystemOpen is true, returning..\n");
 		if ( !GuiActive() ) {
 			// showing weapon zoom gui when objectives are open because that's the way I'z told to make it werkz
 			if ( weapon && weapon->GetZoomGui( ) && zoomed ) {
@@ -3693,6 +3748,7 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 
 	// Draw the cinematic hud when in a cinematic
 	if ( gameLocal.GetCamera( ) ) {
+		gameLocal.Printf("DrawHUD: gameLocal.GetCamera=true, drawing cinematic hud\n");
 		if ( cinematicHud && !(gameLocal.editors & EDITOR_MODVIEW) ) {
 			cinematicHud->Redraw( gameLocal.time );
 		}
@@ -3779,7 +3835,9 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 				// TODO: Find a way to get bracket text from gui to hud
 			}
 		}		
+		gameLocal.Printf("DrawHUD: updating Main HUD\n");
 	 	_hud->Redraw( gameLocal.realClientTime );
+		gameLocal.Printf("DrawHUD: end\n");
 	}
 
 	if ( gameLocal.isMultiplayer ) {
@@ -9190,8 +9248,8 @@ void idPlayer::UpdateHud( void ) {
 		return;
 	}
 
-	CheckInteractionPromt(hud);
-	UpdateCookingHud(hud);
+	
+	
 
 	if ( entityNumber != gameLocal.localClientNum ) {
 		return;
@@ -14108,6 +14166,8 @@ int idPlayer::CanSelectWeapon(const char* weaponName)
 }
 
 void idPlayer::SetCurrentOrder(const idDeclEntityDef* recipeDef) {
+	gameLocal.Printf("Player::SetCurrentOrder: function is called for recipe '%s'\n");
+	
 	ClearCurrentOrder();
 
 	if (!recipeDef) {
@@ -14158,6 +14218,7 @@ void idPlayer::SetCurrentOrder(const idDeclEntityDef* recipeDef) {
 	}
 
 	currentOrder.active = (currentOrder.tasks.Num() > 0);
+	gameLocal.Printf("Player::SetCurrentOrder: Parsed %d tasks. Order Active: %s\n");
 
 
 
@@ -14170,34 +14231,11 @@ void idPlayer::ClearCurrentOrder(void) {
 	currentOrder.active = false;
 }
 
-void idPlayer::CheckInteractionPromt(idUserInterface* _hud) {
+void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 	if (!_hud) {
 		return;
 	}
-	trace_t trace;
-	idVec3 start = GetEyePosition();
-	idVec3 end = start + viewAngles.ToForward() * 80;
 
-	idStr promptText = "";
-
-	gameLocal.TracePoint(this, trace, start, end, MASK_SHOT_BOUNDINGBOX, this);
-
-	if (trace.fraction < 1.0f) {
-		idEntity* ent = gameLocal.entities[trace.c.entityNum];
-
-		if (ent && ent->spawnArgs.GetBool("is_orderer")) {
-			promptText = "Take an Order";
-		}
-	}
-
-	_hud->GetStateString("interaction_promt", promptText);
-
-}
-
-void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
-	if (!hud) {
-		return;
-	}
 
 	if (!currentOrder.active) {
 		_hud->SetStateString("recipe_name", "");
@@ -14209,26 +14247,38 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 		return;
 	}
 
-	_hud->SetStateString("recipe_name", currentOrder.recipeName);
+	else {
+		int ammoIndex = -1;
+		for (int i = 0; i < currentOrder.tasks.Num() && i < 5; i++) {
+			IngredientTask_t& task = currentOrder.tasks[i];
+			
+			
+			idStr weaponName = "Weapon_ingredient_";
+			weaponName += task.name;
+			
+			ammoIndex = inventory.AmmoIndexForWeaponClass(task.name);
+			int currentAmount = 0;
 
-	for (int i = 0; i < currentOrder.tasks.Num() && i < 5; i++) {
-		IngredientTask_t& task = currentOrder.tasks[i];
+	
+			if (ammoIndex != -1) {
+				currentAmount = inventory.ammo[ammoIndex];
+			}
+	
+			idStr line = va("%s %d/%d", task.name.c_str(), currentAmount, task.required);
+			_hud->SetStateString(va("recipe_line_%d", i + 1), line);
 
-		int ammoIndex = inventory.AmmoIndexForWeaponClass(task.name);
-		int currentAmount = 0;
-
-		if (ammoIndex !=-1) {
-			currentAmount = inventory.ammo[ammoIndex];
 		}
 
-		idStr line = va("%s %d/%d", task.name.c_str(), currentAmount, task.required);
-		_hud->SetStateString(va("recipe_line_%d", i + 1), line);
 
+		for (int i = 0; i < 5; i++) {
+			_hud->SetStateString(va("recipe_line_%d", i + 1), "");
+		}
 	}
 
-	for (int i = 0; i < 5; i++) {
-		_hud->SetStateString(va("recipe_line_%d", i + 1), "");
-	}
+	
+		_hud->Redraw(gameLocal.time);
+	
+
 
 }
 

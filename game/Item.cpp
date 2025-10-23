@@ -989,12 +989,16 @@ idItem::Event_Trigger
 ================
 */
 void idItem::Event_Trigger( idEntity *activator ) {
+
+	gameLocal.Printf("Item::Event_Trigger: Recieved activation from '%s' for item '%s'\n");
+
 	if ( !canPickUp && spawnArgs.GetBool( "triggerFirst" ) ) {
 		canPickUp = true;
 		return;
 	}
 
 	if (spawnArgs.GetBool("usable") && spawnArgs.GetBool("trigger_first") && !spawnArgs.GetBool("dropped")) {
+		gameLocal.Printf("Item::Event_Trigger: Item '%s' matches dispenser flags\n");
 		if (activator && activator->IsType(idPlayer::GetClassType())) {
 			Pickup(static_cast<idPlayer *>(activator));		
 		}
@@ -1238,6 +1242,8 @@ void idItemPowerup::Think( void ) {
 idItemPowerup::Pickup
 ================
 */
+
+
 bool idItemPowerup::Pickup( idPlayer* player ) {
 	// regular pickup routine, but unique items need to think to know when to respawn
 	bool pickup;

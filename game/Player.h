@@ -365,6 +365,8 @@ public:
 	bool					disableHud;
 	bool					showNewObjectives;
 
+	idUserInterface*		cookingHud;
+
 	int						lastDmgTime;
 	int						deathClearContentsTime;
  	bool					doingDeathSkin;

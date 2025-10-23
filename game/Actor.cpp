@@ -668,7 +668,7 @@ void idActor::Spawn( void ) {
 		fl.takedamage = false;
 		fl.notarget = true;
 
-
+		ParseRecipes();
 	}
 
 }
@@ -3917,7 +3917,9 @@ void idActor::ParseRecipes(void) {
 
 		if (def && def->GetName() && idStr::Icmpn(def->GetName(), "recipie_", 8)==0)  {
 			recipesDefs.Append(def);
+			
 		}
+
 	}
 
 
@@ -3925,19 +3927,33 @@ void idActor::ParseRecipes(void) {
 
 void idActor::Event_Activate(idActor* activator) {
 
+	gameLocal.Printf("Actor::Event_Activate: recieved call from '%s' for entity '%s'\n");
+
 	if (spawnArgs.GetBool("is_orderer")) {
+		gameLocal.Printf("Actor::Event_Activate: Entity '%s' is seen as orderer\n");
 		if (!activator || !activator->IsType(idPlayer::GetClassType())) {
+			gameLocal.Printf("Actor::Event_Activate: activator check failed'\n");
 			return;
 		}
 
 		idPlayer* player = static_cast<idPlayer*>(activator);
 
-		int randomIndex = gameLocal.random.RandomInt(recipesDefs.Num());
-		const idDeclEntityDef* randomRecipe = recipesDefs[randomIndex];
-
-		if (player && randomRecipe) {
-			player->SetCurrentOrder(randomRecipe);
+		if (recipesDefs.Num() == 0) {
+			gameLocal.Warning("Orderer no loaded recipes");
+			return;
 		}
+			int randomIndex = gameLocal.random.RandomInt(recipesDefs.Num());
+			const idDeclEntityDef* randomRecipe = recipesDefs[randomIndex];
+
+	
+			if (player && randomRecipe) {
+				gameLocal.Printf("Actor::Event_Activate: about to call player->SetCurrentOrder for recipe '%s'\n");
+				player->SetCurrentOrder(randomRecipe);
+			}
+			else {
+				gameLocal.Printf("Actor::Event_Activate: Player or recipe is Null\n");
+			}
+		
 		return;
 	}
 
