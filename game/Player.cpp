@@ -3419,7 +3419,7 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	
 	assert ( _hud );
 
-	/*
+	
 	idStr prompt = "";
 	if (focusType == FOCUS_USABLE && focusEnt.IsValid()) {
 		idEntity* ent = focusEnt.GetEntity();
@@ -3440,7 +3440,7 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	if (_hud) {
 		_hud->SetStateString("interaction_prompt", prompt);
 	}
-	*/
+	
 	
 
 	temp = _hud->State().GetInt ( "player_health", "-1" );
@@ -3671,7 +3671,7 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 	idUserInterface * cursor = idPlayer::cursor;
  
 	bool shouldDraw = true;
-	gameLocal.Printf("DrawHUD: start\n");
+	//gameLocal.Printf("DrawHUD: start\n");
 	if (disableHud) { gameLocal.Printf("DrawHUD: disableHud=True\n"); shouldDraw = false; }
 	if (influenceActive != INFLUENCE_NONE) { gameLocal.Printf("DrawHUD: influenceActive!=Influence_None\n"); shouldDraw = false; }
 	if (privateCameraView) { gameLocal.Printf("DrawHUD: privateCameraView!=NULL\n"); shouldDraw = false; }
@@ -3680,9 +3680,9 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 	if (!shouldDraw) {
 		return;
 	}
-	gameLocal.Printf("DrawHUD: checks passed\n");
+	//gameLocal.Printf("DrawHUD: checks passed\n");
 
-	// UpdateCookingHud(_hud);
+	UpdateCookingHud(_hud);
 
 	if ( !gameLocal.GetLocalPlayer() ) {
 		// server netdemo
@@ -3821,9 +3821,9 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 				// TODO: Find a way to get bracket text from gui to hud
 			}
 		}		
-		gameLocal.Printf("DrawHUD: updating Main HUD\n");
+		//gameLocal.Printf("DrawHUD: updating Main HUD\n");
 	 	_hud->Redraw( gameLocal.realClientTime );
-		gameLocal.Printf("DrawHUD: end\n");
+		//gameLocal.Printf("DrawHUD: end\n");
 	}
 
 	if ( gameLocal.isMultiplayer ) {
@@ -14218,6 +14218,7 @@ void idPlayer::ClearCurrentOrder(void) {
 }
 
 void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
+	
 	if (!_hud) {
 		return;
 	}
@@ -14259,7 +14260,7 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 	}
 	
 
-
+	
 }
 
 // RITUAL END
