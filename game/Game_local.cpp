@@ -1848,9 +1848,39 @@ void idGameLocal::MapPopulate( int instance ) {
 	MEM_SCOPED_TAG(tag,MA_ENTITY);
 // RAVEN END
 
-	recipesDefs.Clear();
+
+	gameLocal.recipesDefs.Clear();
+
+	gameLocal.Printf("MapPopulate: Forcing Preload of recipe defs...\n");
+
+	const char* recipeNames[] = {
+		"recipie_pizza",
+		"recipie_burger",
+		"recipie_fries",
+		"recipie_katsuChicken",
+		"recipie_steak",
+		"recipie_omlette",
+		"recipie_cookies",
+		"recipie_chicken_nuggets",
+		"recipie_sandwich",
+		"recipie_egg_fried_rice",
+		NULL
+	};
+
+	for (int i = 0; recipeNames[i] != NULL; i++) {
+		const idDeclEntityDef* preloadedDef = gameLocal.FindEntityDef(recipeNames[i], false);
+		if (!preloadedDef) {
+			gameLocal.Printf("MapPopulate: failed to pre-load recipe def '%s'", recipeNames[i]);
+		}
+		else {
+			gameLocal.Printf("MapPopulate: successfully pre-load recipe def '%s'", recipeNames[i]);
+		}
+	}
+
+	gameLocal.Printf("MapPopulate: Finished forced Preload of recipe defs\n");
 
 	int numEntityDefs = declManager->GetNumDecls(DECL_ENTITYDEF);
+	gameLocal.Printf("MapPopulate: Found %d total DECL_ENTITYDEFs for recipe check\n",numEntityDefs);
 
 	for (int i = 0; i < numEntityDefs; i++) {
 		const idDecl* decl = declManager->DeclByIndex(DECL_ENTITYDEF, i, false);
@@ -1862,11 +1892,31 @@ void idGameLocal::MapPopulate( int instance ) {
 		if (!entityDef) {
 			continue;
 		}
-		if (entityDef->dict.GetBool("is_recipe")) {
-			recipesDefs.Append(entityDef);
+
+		const idKeyValue* isRecipeKV = entityDef->dict.FindKey("is_recipe");
+		if (idStr::Icmpn(entityDef->GetName(), "recipie_", 8) == 0) {
+			gameLocal.Printf("MapPopulate: Checking '%s' ... FindKey('is_recipe') != NULL: %s\n", entityDef->GetName(), (isRecipeKV != NULL) ? "Yes" : "No");
+		}
+
+		if (isRecipeKV != NULL && isRecipeKV->GetValue().Icmp("1")==0) {
+			int keyCount = entityDef->dict.GetNumKeyVals();
+			gameLocal.Printf("MapPopulate: Found recipe '%s'. Key count: %d\n", entityDef->GetName(), keyCount);
+			if (keyCount == 0) {
+				gameLocal.Printf("MapPopulate: Recipe '%s' has empty dict after finding it\n");
+			}
+			else {
+				gameLocal.Printf("MapPopulate: Dumping keys for '%s':\n", entityDef->GetName());
+				for (int k = 0; k < keyCount; k++) {
+					const idKeyValue* kv = entityDef->dict.GetKeyVal(k);
+					if (kv) {
+						gameLocal.Printf("	Key %d: '%s' = '%s'\n", k, kv->GetKey().c_str(), kv->GetValue().c_str());
+					}
+				}
+			}
+			gameLocal.recipesDefs.Append(entityDef);
 		}
 	}
-
+	gameLocal.Printf("MapPopulate: Finished checking recipes, added %d recipes to gameLocal.recipesDefs list\n", gameLocal.recipesDefs.Num());
 
 	if ( isMultiplayer ) {
 		cvarSystem->SetCVarBool( "r_skipSpecular", false );
@@ -8440,6 +8490,36 @@ bool idGameLocal::IsTeamPowerups( void ) {
 		return false;
 	}
 	return ( gameType != GAME_ARENA_CTF );
+}
+
+void idActor::ParseRecipes(void) {
+	gameLocal.recipesDefs.Clear();
+
+	int numDefs = declManager->GetNumDecls(DECL_ENTITYDEF);
+	gameLocal.Printf("Actor::ParseRecipes: Found %d total DECL_ENTITYDEF\n", numDefs);
+
+	for (int i = 0; i < numDefs; i++) {
+
+		const idDecl* decl = declManager->DeclByIndex(DECL_ENTITYDEF, i, false);
+		if (!decl) {
+			continue;
+		}
+
+		const idDeclEntityDef* def = static_cast<const idDeclEntityDef*>(decl);
+
+		if (def && def->GetName() && idStr::Icmpn(def->GetName(), "recipie_", 8) == 0) {
+			int keyCount = def->dict.GetNumKeyVals();
+			gameLocal.Printf("Actor::ParseRecipes: Found recipe '%s'. Key count: %d\n", def->GetName(), keyCount);
+			if (keyCount == 0) {
+				gameLocal.Printf("Actor::ParseRecipes: Recipe '%s' has empty dict after finding it\n");
+			}
+			gameLocal.recipesDefs.Append(def);
+
+		}
+		gameLocal.Printf("Actor::ParseRecipes: Finished, added %d recipes to recipesDefs\n", gameLocal.recipesDefs.Num());
+	}
+
+
 }
 
 // RAVEN BEGIN

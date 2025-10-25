@@ -668,7 +668,7 @@ void idActor::Spawn( void ) {
 		fl.takedamage = false;
 		fl.notarget = true;
 
-		ParseRecipes();
+		
 	}
 
 }
@@ -898,10 +898,10 @@ void idActor::Save( idSaveGame *savefile ) const {
 	savefile->WriteJoint( deathPushJoint );
 
 	if (spawnArgs.GetBool("is_orderer")) {
-		int num = recipesDefs.Num();
+		int num = gameLocal.recipesDefs.Num();
 		savefile->WriteInt(num);
 		for (int i = 0; i < num; i++) {
-			savefile->WriteInt(recipesDefs[i]->Index());
+			savefile->WriteInt(gameLocal.recipesDefs[i]->Index());
 		}
 	}
 	else {
@@ -1034,9 +1034,9 @@ void idActor::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadInt(num);
 	if (num > 0) {
-		recipesDefs.Clear();
-		recipesDefs.SetGranularity(1);
-		recipesDefs.Resize(num);
+		gameLocal.recipesDefs.Clear();
+		gameLocal.recipesDefs.SetGranularity(1);
+		gameLocal.recipesDefs.Resize(num);
 		for (i = 0; i < num; i++) {
 			int defIndex;
 			savefile->ReadInt(defIndex);
@@ -1044,16 +1044,16 @@ void idActor::Restore( idRestoreGame *savefile ) {
 
 			if (decl && decl->GetType()==DECL_ENTITYDEF) {
 
-				recipesDefs[i] = static_cast<const idDeclEntityDef*>(decl);
+				gameLocal.recipesDefs[i] = static_cast<const idDeclEntityDef*>(decl);
 
 			}
 			else {
-				recipesDefs[NULL];
+				gameLocal.recipesDefs[NULL];
 			}
 		}
 	}
 	else {
-		recipesDefs.Clear();
+		gameLocal.recipesDefs.Clear();
 	}
 
 }
@@ -3901,29 +3901,35 @@ void idActor::GuidedProjectileIncoming( idGuidedProjectile *projectile )
 	}
 }
 
-void idActor::ParseRecipes(void) {
-	recipesDefs.Clear();
-
-	int numDefs = declManager->GetNumDecls(DECL_ENTITYDEF);
-
-	for (int i = 0; i < numDefs; i++) {
-
-		const idDecl* decl = declManager->DeclByIndex(DECL_ENTITYDEF, i, false);
-		if (!decl) {
-			continue;
-		}
-
-		const idDeclEntityDef* def = static_cast<const idDeclEntityDef*>(decl);
-
-		if (def && def->GetName() && idStr::Icmpn(def->GetName(), "recipie_", 8)==0)  {
-			recipesDefs.Append(def);
-			
-		}
-
-	}
-
-
-}
+//void idActor::ParseRecipes(void) {
+//	recipesDefs.Clear();
+//
+//	int numDefs = declManager->GetNumDecls(DECL_ENTITYDEF);
+//	gameLocal.Printf("Actor::ParseRecipes: Found %d total DECL_ENTITYDEF\n", numDefs);
+//
+//	for (int i = 0; i < numDefs; i++) {
+//
+//		const idDecl* decl = declManager->DeclByIndex(DECL_ENTITYDEF, i, false);
+//		if (!decl) {
+//			continue;
+//		}
+//
+//		const idDeclEntityDef* def = static_cast<const idDeclEntityDef*>(decl);
+//
+//		if (def && def->GetName() && idStr::Icmpn(def->GetName(), "recipie_", 8)==0)  {
+//			int keyCount = def->dict.GetNumKeyVals();
+//			gameLocal.Printf("Actor::ParseRecipes: Found recipe '%s'. Key count: %d\n",def->GetName(), keyCount);
+//			if (keyCount == 0) {
+//				gameLocal.Printf("Actor::ParseRecipes: Recipe '%s' has empty dict after finding it\n");
+//			}
+//			recipesDefs.Append(def);
+//			
+//		}
+//		gameLocal.Printf("Actor::ParseRecipes: Finished, added %d recipes to recipesDefs\n",recipesDefs.Num());
+//	}
+//
+//
+//}
 
 void idActor::Event_Activate(idActor* activator) {
 
@@ -3938,12 +3944,12 @@ void idActor::Event_Activate(idActor* activator) {
 
 		idPlayer* player = static_cast<idPlayer*>(activator);
 
-		if (recipesDefs.Num() == 0) {
+		if (gameLocal.recipesDefs.Num() == 0) {
 			gameLocal.Warning("Orderer no loaded recipes");
 			return;
 		}
-			int randomIndex = gameLocal.random.RandomInt(recipesDefs.Num());
-			const idDeclEntityDef* randomRecipe = recipesDefs[randomIndex];
+			int randomIndex = gameLocal.random.RandomInt(gameLocal.recipesDefs.Num());
+			const idDeclEntityDef* randomRecipe = gameLocal.recipesDefs[randomIndex];
 
 	
 			if (player && randomRecipe) {

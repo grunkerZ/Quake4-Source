@@ -337,7 +337,7 @@ protected:
 	jointHandle_t			flashlightJoint;
 	idVec3					flashlightOffset;
 
-	idList<const idDeclEntityDef*>	recipesDefs;
+	/*idList<const idDeclEntityDef*>	recipesDefs;*/
 
 // bdube: death force
 	int						deathPushTime;

@@ -914,6 +914,9 @@ public:
 	void					ServerSetEntityIndexWatermark( int instanceID );
 
 private:
+
+	void ParseRecipes(void);
+
 // RAVEN BEGIN
 // ddynerman: multiple instance for MP
 	idList<idClip*>			clip;					// collision detection
