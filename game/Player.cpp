@@ -3682,7 +3682,7 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 	}
 	//gameLocal.Printf("DrawHUD: checks passed\n");
 
-	UpdateCookingHud(_hud);
+	
 
 	if ( !gameLocal.GetLocalPlayer() ) {
 		// server netdemo
@@ -3805,6 +3805,8 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 		}	
 
 		UpdateHudStats( _hud );
+
+		UpdateCookingHud(_hud);
 
 		if ( focusBrackets ) {
 			// If 2d_calc is still true then the gui didnt render so we can abandon it
@@ -14274,20 +14276,26 @@ void idPlayer::ClearCurrentOrder(void) {
 }
 
 void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
-	
+	gameLocal.Printf("Player::UpdateCookingHud: Called. currentOrder.active = %s\n",currentOrder.active ? "true" : "false");
+
 	if (!_hud) {
 		return;
 	}
 
-	_hud->SetStateBool("gui::recipe_active", currentOrder.active);
+	_hud->SetStateBool("recipe_active", currentOrder.active);
+
+	if (currentOrder.active) {
+		gameLocal.Printf("Player::UpdateCookingHud: Set recipe_active to true\n");
+	}
 
 	if (!currentOrder.active) {
-		_hud->SetStateString("gui::recipe_name", "");
+		_hud->SetStateString("recipe_name", "");
 		for (int i = 1; i <= 5; i++) {
-			_hud->SetStateString(va("gui::recipe_line_%d", i), "");
+			_hud->SetStateString(va("recipe_line_%d", i), "");
 		}
 	} else {
-		_hud->SetStateString("gui::recipe_name", currentOrder.recipeName.c_str());
+		gameLocal.Printf("Player::UpdateCookingHud: Active order, tasks.Num() = %d\n",currentOrder.tasks.Num());
+		_hud->SetStateString("recipe_name", currentOrder.recipeName.c_str());
 
 		int ammoIndex = -1;
 		for (int i = 0; i < currentOrder.tasks.Num() && i < 5; i++) {
@@ -14305,13 +14313,13 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 			}
 	
 			idStr line = va("%s %d/%d", task.name.c_str(), currentAmount, task.required);
-			_hud->SetStateString(va("gui::recipe_line_%d", i + 1), line);
+			_hud->SetStateString(va("recipe_line_%d", i + 1), line);
 
 		}
 
 
 		for (int i = currentOrder.tasks.Num(); i < 5; i++) {
-			_hud->SetStateString(va("gui::recipe_line_%d", i + 1), "");
+			_hud->SetStateString(va("recipe_line_%d", i + 1), "");
 		}
 	}
 	
