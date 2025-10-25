@@ -14152,66 +14152,94 @@ int idPlayer::CanSelectWeapon(const char* weaponName)
 }
 
 void idPlayer::SetCurrentOrder(const idDeclEntityDef* recipeDef) {
-	gameLocal.Printf("Player::SetCurrentOrder: function is called for recipe '%s'\n");
+	gameLocal.Printf("Player::SetCurrentOrder: function is called for recipe '%s'\n", recipeDef ? recipeDef->GetName() : "NULL");
 	
 	ClearCurrentOrder();
 
 	if (!recipeDef) {
+		gameLocal.Printf("Player::SetCurrentOrder: recipeDef is NULL\n");
+		currentOrder.active = false;
 		return;
 	}
 
 	currentOrder.recipeName = recipeDef->dict.GetString("inv_name", "Unknown");
+	gameLocal.Printf("Player::SetCurrentOrder: Recipe Name set to '%s'\n", currentOrder.recipeName.c_str());
 
 	const char* ingredientsStr = recipeDef->dict.GetString("ingredients");
 	if (!ingredientsStr || !*ingredientsStr) {
+		gameLocal.Printf("Player::SetCurrentOrder: ingredients string is missing or empty for recipe '%s'\n",currentOrder.recipeName.c_str());
 		currentOrder.active = false;
 		return;
 	}
 
 	idLexer lexer(ingredientsStr, idStr::Length(ingredientsStr), "recipe_parser", LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS);
 
+	gameLocal.Printf("Player::SetCurrentOrder: Parsing ingredients string: '%s'\n", ingredientsStr);
 	idToken token;
 	idToken token2;
+	int taskCount = 0;
 
 	while (lexer.ReadToken(&token)) {
 		if (token.type !=TT_STRING) {
+			gameLocal.Printf("Player::SetCurrentOrder: Parsing Error, expected ingredient name (string), got token type %d. Parse stopped\n",token.type);
 			break;
 		}
 
 		IngredientTask_t newTask;
 		newTask.name = token;
+		gameLocal.Printf("Player::SetCurrentOrder: Parsing, Found ingredient: '%s'\n",newTask.name.c_str());
 
 		if (!lexer.ExpectTokenString(",")) {
+			gameLocal.Printf("Player::SetCurrentOrder: Parsing Error, expected ',' after ingredient name '%s', stopping...\n",newTask.name.c_str());
 			break;
 		}
 
 		if(!lexer.ReadToken(&token2)||token2.type!=TT_NUMBER||token2.subtype!=TT_INTEGER){
+			gameLocal.Printf("Player::SetCurrentOrder: Parsing Error, expected required amount (integer) for ingredient '%s'. got token type %d instead, stopping...\n",token2.type);
 			break;
 		}
 
 		newTask.required = token2.GetIntValue();
+		gameLocal.Printf("Player::SetCurrentOrder: Parsing, found required amount: %d\n",newTask.required);
 
 		if (newTask.required <= 0) {
+			gameLocal.Printf("Player::SetCurrentOrder: Parsing, skipping ingredient '%s' since required amount <=0\n",newTask.name.c_str());
+			
+			if (!lexer.CheckTokenString(",")) {
+				break;
+			}
+			
 			continue;
 		}
 
+		
+
+		taskCount++;
 		currentOrder.tasks.Append(newTask);
+		gameLocal.Printf("Player::SetCurrentOrder: Parsing, added task %d: %s, %d\n",taskCount,newTask.name.c_str(),newTask.required);
 
 		if (!lexer.CheckTokenString(",")) {
+			gameLocal.Printf("Player::SetCurrentOrder: Parsing, no more commas found, ending loop\n");
 			break;
 		}
+		gameLocal.Printf("Player::SetCurrentOrder: Parsing, found ',', looking for new ingredient\n");
 
 	}
 
 	currentOrder.active = (currentOrder.tasks.Num() > 0);
-	gameLocal.Printf("Player::SetCurrentOrder: Parsed %d tasks. Order Active: %s\n");
+	gameLocal.Printf("Player::SetCurrentOrder: Parsed %d tasks. Order Active: %s\n", currentOrder.tasks.Num(), currentOrder.active ? "true" : "false");
 
-
+	if (!currentOrder.active) {
+		gameLocal.Printf("Player::SetCurrentOrder: Parse finished but no values aded, order inactive\n");
+	}
 
 	
 }
 
 void idPlayer::ClearCurrentOrder(void) {
+	if (currentOrder.active) {
+		gameLocal.Printf("Player::ClearCurrentOrder: Clearing active order '%s'\n",currentOrder.recipeName.c_str());
+	}
 	currentOrder.tasks.Clear();
 	currentOrder.recipeName = "";
 	currentOrder.active = false;

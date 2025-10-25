@@ -3927,10 +3927,10 @@ void idActor::ParseRecipes(void) {
 
 void idActor::Event_Activate(idActor* activator) {
 
-	gameLocal.Printf("Actor::Event_Activate: recieved call from '%s' for entity '%s'\n");
+	gameLocal.Printf("Actor::Event_Activate: recieved call from '%s' for entity '%s'\n", activator ? activator->GetName() : "NULL", this->GetName());
 
 	if (spawnArgs.GetBool("is_orderer")) {
-		gameLocal.Printf("Actor::Event_Activate: Entity '%s' is seen as orderer\n");
+		gameLocal.Printf("Actor::Event_Activate: Entity '%s' is seen as orderer\n", this->GetName());
 		if (!activator || !activator->IsType(idPlayer::GetClassType())) {
 			gameLocal.Printf("Actor::Event_Activate: activator check failed'\n");
 			return;
@@ -3947,7 +3947,7 @@ void idActor::Event_Activate(idActor* activator) {
 
 	
 			if (player && randomRecipe) {
-				gameLocal.Printf("Actor::Event_Activate: about to call player->SetCurrentOrder for recipe '%s'\n");
+				gameLocal.Printf("Actor::Event_Activate: about to call player->SetCurrentOrder for recipe '%s'\n", randomRecipe ? randomRecipe->GetName() : "NULL");
 				player->SetCurrentOrder(randomRecipe);
 			}
 			else {

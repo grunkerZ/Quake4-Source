@@ -990,7 +990,7 @@ idItem::Event_Trigger
 */
 void idItem::Event_Trigger( idEntity *activator ) {
 
-	gameLocal.Printf("Item::Event_Trigger: Recieved activation from '%s' for item '%s'\n");
+	gameLocal.Printf("Item::Event_Trigger: Recieved activation from '%s' for item '%s'\n", activator ? activator->GetName() : "NULL", this->GetName());
 
 	if ( !canPickUp && spawnArgs.GetBool( "triggerFirst" ) ) {
 		canPickUp = true;
@@ -998,7 +998,7 @@ void idItem::Event_Trigger( idEntity *activator ) {
 	}
 
 	if (spawnArgs.GetBool("usable") && spawnArgs.GetBool("trigger_first") && !spawnArgs.GetBool("dropped")) {
-		gameLocal.Printf("Item::Event_Trigger: Item '%s' matches dispenser flags\n");
+		gameLocal.Printf("Item::Event_Trigger: Item '%s' matches dispenser flags\n", this->GetName());
 		if (activator && activator->IsType(idPlayer::GetClassType())) {
 			Pickup(static_cast<idPlayer *>(activator));		
 		}
