@@ -821,10 +821,33 @@ public:
 	void					ResetCash();
 // RITUAL END
 
+	void					AttemptToCook(void);
+	bool					CanStartCooking(void);
+	void					StartCookingSequence(void);
+	void					AdvanceMinigame(void);
+	void					CompleteOrder(void);
+	void					FailOrder(void);
+	const idDeclEntityDef* GetCurrentRecipeDef(void) const;
+	void					HandleMinigameInput(void);
+
+	virtual void			Event_MinigameComplete(void);
+	virtual void			Event_MinigameFail(void);
+
+
 protected:
 	void					SetupHead( const char* modelKeyName = "", idVec3 headOffset = idVec3(0, 0, 0) );
 
 private:
+
+	idStrList				minigameSequence;
+	int						currentMinigameIndex;
+	int						minigameStartTime;
+	int						totalMinigameTime;
+
+	bool					CheckIngredients(void);
+	void					ConsumeIngredients(void);
+	void					StartSpecificMinigame(const char* minigameName);
+	
 
 	CurrentOrder_t			currentOrder;
 

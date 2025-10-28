@@ -117,9 +117,19 @@ const idEventDef EV_Player_DisableObjectives( "disableObjectives" );
 // mekberg: don't suppress showing of new objectives anymore
 const idEventDef EV_Player_AllowNewObjectives( "<allownewobjectives>" );
 
+
+
+const idEventDef EV_Player_MinigameComplete("<minigameComplete>", NULL);
+const idEventDef EV_Player_MinigameFail("<minigameFail>", NULL);
+
+
 // RAVEN END
 
 CLASS_DECLARATION( idActor, idPlayer )
+
+	EVENT( EV_Player_MinigameComplete,		idPlayer::Event_MinigameComplete)	
+	EVENT( EV_Player_MinigameFail,			idPlayer::Event_MinigameFail)
+
 //	EVENT( EV_Player_HideDatabaseEntry,		idPlayer::Event_HideDatabaseEntry )
 	EVENT( EV_Player_ZoomIn,				idPlayer::Event_ZoomIn )
 	EVENT( EV_Player_ZoomOut,				idPlayer::Event_ZoomOut )
@@ -1080,6 +1090,11 @@ idPlayer::idPlayer() {
 
 	currentOrder.active = false;
 
+	currentMinigameIndex = -1;
+	minigameStartTime = 0;
+	totalMinigameTime = 0;
+
+
 	memset( &usercmd, 0, sizeof( usercmd ) );
 
 	alreadyDidTeamAnnouncerSound = false;
@@ -1500,6 +1515,13 @@ idPlayer::Init
 */
 void idPlayer::Init( void ) {
 	const char			*value;
+
+
+	minigameSequence.Clear();
+	currentMinigameIndex = -1;
+	minigameStartTime = 0;
+	totalMinigameTime = 0;
+
 
 	noclip					= false;
 	godmode					= false;
@@ -9360,7 +9382,15 @@ Called every tic for each player
 */
 void idPlayer::Think( void ) {
 	renderEntity_t *headRenderEnt;
- 
+	
+	if (hud && hud->State().GetInt("minigameActive") != 0) {
+		if ((usercmd.buttons & BUTTON_ATTACK) && !(oldButtons & BUTTON_ATTACK)) {
+			HandleMinigameInput();
+		}
+	}
+
+
+
 	if ( talkingNPC ) {
 		if ( !talkingNPC.IsValid() ) {
 			talkingNPC = NULL;
@@ -14276,7 +14306,7 @@ void idPlayer::ClearCurrentOrder(void) {
 }
 
 void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
-	gameLocal.Printf("Player::UpdateCookingHud: Called. currentOrder.active = %s\n",currentOrder.active ? "true" : "false");
+	//gameLocal.Printf("Player::UpdateCookingHud: Called. currentOrder.active = %s\n",currentOrder.active ? "true" : "false");
 
 	if (!_hud) {
 		return;
@@ -14285,7 +14315,7 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 	_hud->SetStateBool("recipe_active", currentOrder.active);
 
 	if (currentOrder.active) {
-		gameLocal.Printf("Player::UpdateCookingHud: Set recipe_active to true\n");
+		//gameLocal.Printf("Player::UpdateCookingHud: Set recipe_active to true\n");
 	}
 
 	if (!currentOrder.active) {
@@ -14294,7 +14324,7 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 			_hud->SetStateString(va("recipe_line_%d", i), "");
 		}
 	} else {
-		gameLocal.Printf("Player::UpdateCookingHud: Active order, tasks.Num() = %d\n",currentOrder.tasks.Num());
+		//gameLocal.Printf("Player::UpdateCookingHud: Active order, tasks.Num() = %d\n",currentOrder.tasks.Num());
 		_hud->SetStateString("recipe_name", currentOrder.recipeName.c_str());
 
 		int ammoIndex = -1;
@@ -14309,7 +14339,7 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 				currentAmount = inventory.ammo[ammoIndex];
 			}
 			else {
-				gameLocal.Printf("UpdateCookingHud: Cannot find ammo index for task '%s' \n", task.name.c_str());
+				//gameLocal.Printf("UpdateCookingHud: Cannot find ammo index for task '%s' \n", task.name.c_str());
 			}
 	
 			idStr line = va("%s %d/%d", task.name.c_str(), currentAmount, task.required);
@@ -14325,6 +14355,253 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 	
 
 	
+}
+
+
+#include "Item.h"
+
+void idPlayer::AttemptToCook(void) {
+	gameLocal.Printf("Player::AttemptToCook: function called for player '%s'\n",name.c_str());
+
+	if (hud && hud->State().GetInt("minigameActive") != 0) {
+		gameLocal.Printf("Player::AttemptToCook: Cannot cook now, minigame active\n");
+		return;
+	}
+	if (!currentOrder.active) {
+		gameLocal.Printf("Player::AttemptToCook: No active order\n");
+		return;
+	}
+	gameLocal.Printf("Player::AttemptToCook: Player has active order '%s'. Checking ingredients...\n",currentOrder.recipeName.c_str());
+
+	if (!CheckIngredients()) {
+		gameLocal.Printf("Player::AttemptToCook: Not Enough Ingredients for '%s'\n",currentOrder.recipeName.c_str());
+		return;
+	}
+
+	gameLocal.Printf("Player::AttemptToCook: Ingredients ok, starting cooking sequence for '%s'\n",currentOrder.recipeName.c_str());
+	StartCookingSequence();
+}
+
+bool idPlayer::CheckIngredients(void) {
+	if (!currentOrder.active) {
+		return false;
+	}
+
+	gameLocal.Printf("Player::CheckIngredients: Checking recipe '%s'\n",currentOrder.recipeName.c_str());
+
+	for (int i = 0; i < currentOrder.tasks.Num(); i++) {
+		const IngredientTask_t& task = currentOrder.tasks[i];
+		int ammoIndex = inventory.AmmoIndexForAmmoClass(task.name.c_str());
+
+		if (ammoIndex == -1) {
+			gameLocal.Printf("Player::CheckIngredients: Unknown Ammo Type '%s'\n",task.name.c_str());
+			return false;
+		}
+
+		int currentAmount = inventory.ammo[ammoIndex];
+		gameLocal.Printf("Player::CheckIngredients: Need %d of '%s', Have %d\n",task.required,task.name.c_str(),currentAmount);
+
+		if (currentAmount < task.required) {
+			gameLocal.Printf("Player::CheckIngredients: Failed check for '%s'\n",task.name.c_str());
+			return false;
+		}
+	}
+
+	gameLocal.Printf("Player::CheckIngredients: Passed ingredient chekcs for '%s'\n",currentOrder.recipeName.c_str());
+	return true;
+}
+
+
+
+void idPlayer::ConsumeIngredients(void) {
+	if (!currentOrder.active) {
+		return;
+	}
+
+	gameLocal.Printf("Player::ConsumeIngredients: Consuming ingredients for recipe '%s'\n",currentOrder.recipeName.c_str());
+	for (int i = 0; i < currentOrder.tasks.Num(); i++) {
+		const IngredientTask_t& task = currentOrder.tasks[i];
+		int ammoIndex = inventory.AmmoIndexForAmmoClass(task.name.c_str());
+
+		if (ammoIndex = -1) {
+			gameLocal.Printf("Player::ConsumeIngredients: Unknown ammo type '%s'\n",task.name.c_str());
+			continue;
+		}
+
+		if (inventory.ammo[ammoIndex] >= task.required) {
+			gameLocal.Printf("Player::ConsumeIngredients: Removing %d  of '%s'. Current %d\n", task.required, task.name.c_str(),inventory.ammo[ammoIndex]);
+			inventory.ammo[ammoIndex] -= task.required;
+			gameLocal.Printf("Player::ConsumeIngredients: New amount of '%s' : %d\n",task.name.c_str(),inventory.ammo[ammoIndex]);
+		}
+		else {
+			gameLocal.Printf("Player::ConsumeIngredients: Tried to consume %d of '%s' but only had %d", task.required, task.name.c_str(), inventory.ammo[ammoIndex]);
+			inventory.ammo[ammoIndex] = 0;
+		}
+	}
+	
+	if (weapon) {
+		UpdateHudAmmo(hud);
+	}
+	UpdateCookingHud(hud);
+}
+
+
+
+void idPlayer::StartCookingSequence(void) {
+	gameLocal.Printf("Player::StartCookingSequence: Starting sequence for '%s'\n",currentOrder.recipeName.c_str());
+
+	const idDeclEntityDef* recipeDef = GetCurrentRecipeDef();
+	if (!recipeDef) {
+		gameLocal.Printf("Player::StartCookingSequence: Could not find recipe def for order '%s', stopping...\n",currentOrder.recipeName.c_str());
+		FailOrder();
+		return;
+	}
+
+	const char* sequenceStr = recipeDef->dict.GetString("minigame_sequence");
+	if (!sequenceStr || !*sequenceStr) {
+		gameLocal.Printf("Player::StartCookingSequence: No 'minigame_sequence' defined for recipe '%s', completing order\n",currentOrder.recipeName.c_str());
+		CompleteOrder();
+		return;
+	}
+
+	gameLocal.Printf("Player::StartCookingSequence: Parsing sequence string: '%s'\n",sequenceStr);
+
+	minigameSequence.Clear();
+	idLexer lexer(sequenceStr, idStr::Length(sequenceStr), "minigame_parser");
+	idToken token;
+	while (lexer.ReadToken(&token)) {
+		if (token == ",") {
+			continue;
+		}
+		gameLocal.Printf("Player::StartCookingSequence: Adding Minigame '%s' to sequence\n",token.c_str());
+		minigameSequence.Append(token);
+
+	}
+
+	if (minigameSequence.Num() == 0) {
+		gameLocal.Printf("Player::StartCookingSequence: Parsed 'minigame_sequence' but found no valid minigames, completing order\n");
+		CompleteOrder();
+		return;
+	}
+
+	currentMinigameIndex = 0;
+	totalMinigameTime = 0;
+	StartSpecificMinigame(minigameSequence[currentMinigameIndex].c_str());
+
+
+}
+
+
+void idPlayer::StartSpecificMinigame(const char* minigameName) {
+	gameLocal.Printf("Player::StartSpecificMinigame: Starting minigame '%s'\n", minigameName);
+	minigameStartTime = gameLocal.time;
+
+	if (hud) {
+		idStr eventName = "start";
+		eventName += minigameName;
+		eventName += "Minigame";
+		gameLocal.Printf("Player::StartSpecificMinigame: Calling HUD event '%s'\n",eventName.c_str());
+		hud->HandleNamedEvent(eventName.c_str());
+	}
+	else {
+		gameLocal.Printf("Player::StartSpecificMinigame: No HUD available to start minigame '5s'\n",minigameName);
+		FailOrder();
+	}
+
+
+}
+
+
+void idPlayer::AdvanceMinigame(void) {
+	int stepTime = gameLocal.time - minigameStartTime;
+	totalMinigameTime += stepTime;
+	gameLocal.Printf("Player::AdvanceMinigame: Minigame '%s' completed in %d ms. Total time %d ms\n", minigameSequence[currentMinigameIndex].c_str(),stepTime,totalMinigameTime);
+	currentMinigameIndex++;
+
+	if (currentMinigameIndex >= minigameSequence.Num()) {
+		gameLocal.Printf("Player::AdvanceMinigame: All minigames completed\n");
+		CompleteOrder();
+	}
+	else {
+		gameLocal.Printf("Player::AdvanceMinigame: Starting next minigame '%s'\n",minigameSequence[currentMinigameIndex].c_str());
+		StartSpecificMinigame(minigameSequence[currentMinigameIndex].c_str());
+	}
+}
+
+
+void idPlayer::CompleteOrder(void) {
+	gameLocal.Printf("Player::CompleteOrder: Order '%s' completed\n",currentOrder.recipeName.c_str());
+
+	float scoreMultiplier = 1.0f;
+	float baseReward = 50.0f;
+	float finalReward = baseReward * scoreMultiplier;
+	GiveCash(finalReward);
+	gameLocal.Printf("Player::CompleteOrder: Awarded %f cash\n",finalReward);
+
+	ConsumeIngredients();
+
+	ClearCurrentOrder();
+	UpdateCookingHud(hud);
+
+	minigameSequence.Clear();
+	currentMinigameIndex = -1;
+	totalMinigameTime = 0;
+
+}
+
+void idPlayer::FailOrder(void) {
+	gameLocal.Printf("Player::FailOrder: Order '%s' failed\n",currentOrder.recipeName.c_str());
+	ClearCurrentOrder();
+	UpdateCookingHud(hud);
+	minigameSequence.Clear();
+	currentMinigameIndex = -1;
+	totalMinigameTime = 0;
+}
+
+const idDeclEntityDef* idPlayer::GetCurrentRecipeDef(void) const {
+	if (!currentOrder.active) {
+		return NULL;
+	}
+	for (int i = 0; i < gameLocal.recipesDefs.Num(); i++) {
+		if (gameLocal.recipesDefs[i] && gameLocal.recipesDefs[i]->dict.GetString("inv_name", "") == currentOrder.recipeName) {
+			return gameLocal.recipesDefs[i];
+		}
+	}
+	gameLocal.Printf("Player::GetCurrentRecipeDef: Could not find recipe def for '%s'\n",currentOrder.recipeName.c_str());
+	return NULL;
+}
+
+void idPlayer::HandleMinigameInput(void) {
+	gameLocal.Printf("Player::HandleMinigameInput: Attack pressed during active minigame\n");
+
+	if (hud) {
+		hud->HandleNamedEvent("handleMinigameInput");
+	}
+	else {
+		gameLocal.Printf("Player::HandleMinigameInput: no HUD to handle input\n");
+	}
+}
+
+void idPlayer::Event_MinigameComplete(void) {
+	gameLocal.Printf("Player::Event_MinigameComplete: Received success event from GUI\n");
+	if (hud && hud->State().GetInt("minigameActive") != 0) {
+		AdvanceMinigame();
+	}
+	else {
+		gameLocal.Printf("Player::Event_MinigameComplete: Recieved event but no minigame active according to hud state\n");
+	}
+
+}
+
+void idPlayer::Event_MinigameFail(void) {
+	gameLocal.Printf("Player::Event_MinigameFail: Recieved failure event from gui\n");
+
+	if (hud && hud->State().GetInt("minigameActive") != 0) {
+		FailOrder();
+	}
+	else {
+		gameLocal.Printf("Player::Event_MinigameFail: Recieved Event but no minigame active according to hud state\n");
+	}
 }
 
 // RITUAL END

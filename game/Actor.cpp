@@ -3931,6 +3931,8 @@ void idActor::GuidedProjectileIncoming( idGuidedProjectile *projectile )
 //
 //}
 
+
+
 void idActor::Event_Activate(idActor* activator) {
 
 	gameLocal.Printf("Actor::Event_Activate: recieved call from '%s' for entity '%s'\n", activator ? activator->GetName() : "NULL", this->GetName());

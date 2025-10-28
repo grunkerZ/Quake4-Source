@@ -990,6 +990,18 @@ idItem::Event_Trigger
 */
 void idItem::Event_Trigger( idEntity *activator ) {
 
+	if (spawnArgs.GetBool("is_cookstation")) {
+		gameLocal.Printf("Item::Event_Trigger: Detected cookstation activation by '%s'\n", activator ? activator->GetName() : "NULL");
+	
+		if (activator && activator->IsType(idPlayer::GetClassType())) {
+			idPlayer* player = static_cast<idPlayer*>(activator);
+			player->AttemptToCook();
+		}
+		
+		return;
+	}
+
+
 	gameLocal.Printf("Item::Event_Trigger: Recieved activation from '%s' for item '%s'\n", activator ? activator->GetName() : "NULL", this->GetName());
 
 	if ( !canPickUp && spawnArgs.GetBool( "triggerFirst" ) ) {
