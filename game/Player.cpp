@@ -14433,7 +14433,7 @@ void idPlayer::ConsumeIngredients(void) {
 		const IngredientTask_t& task = currentOrder.tasks[i];
 		int ammoIndex = inventory.AmmoIndexForAmmoClass(task.name.c_str());
 
-		if (ammoIndex = -1) {
+		if (ammoIndex == -1) {
 			gameLocal.Printf("Player::ConsumeIngredients: Unknown ammo type '%s'\n",task.name.c_str());
 			continue;
 		}
