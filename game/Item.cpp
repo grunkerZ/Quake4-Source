@@ -990,6 +990,16 @@ idItem::Event_Trigger
 */
 void idItem::Event_Trigger( idEntity *activator ) {
 
+	if (spawnArgs.GetBool("is_upgradestation")) {
+		gameLocal.Printf("Item::Event_Trigger: Detected upgradestation activation by '%s'\n", activator ? activator->GetName() : "NULL");
+		
+		if (activator && activator->IsType(idPlayer::GetClassType())) {
+			idPlayer* player = static_cast<idPlayer*>(activator);
+			player->PurchaseMoneyMultiplierUpgrade();
+		}
+		return;
+	}
+
 	if (spawnArgs.GetBool("is_cookstation")) {
 		gameLocal.Printf("Item::Event_Trigger: Detected cookstation activation by '%s'\n", activator ? activator->GetName() : "NULL");
 	

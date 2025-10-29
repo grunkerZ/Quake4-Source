@@ -830,8 +830,16 @@ public:
 	const idDeclEntityDef* GetCurrentRecipeDef(void) const;
 	void					HandleMinigameInput(void);
 
+
 	virtual void			Event_MinigameComplete(void);
 	virtual void			Event_MinigameFail(void);
+
+	bool					isMinigameActive;
+
+	float					moneyMultiplier;
+
+	void					PurchaseMoneyMultiplierUpgrade(void);
+	void					UpdateCash(float amount);
 
 
 protected:

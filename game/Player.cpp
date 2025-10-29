@@ -1088,6 +1088,10 @@ idPlayer::idPlayer
 */
 idPlayer::idPlayer() {
 
+	moneyMultiplier = 1.0f;
+
+	isMinigameActive = false;
+
 	currentOrder.active = false;
 
 	currentMinigameIndex = -1;
@@ -9382,9 +9386,13 @@ Called every tic for each player
 */
 void idPlayer::Think( void ) {
 	renderEntity_t *headRenderEnt;
+	//gameLocal.Printf("Think - isMinigameActive state read %d\n", isMinigameActive);
+
+	if (isMinigameActive && (gameLocal.time > minigameStartTime + 200)) {
+		//gameLocal.Printf("Think: isMinigameActive is true\n");
 	
-	if (hud && hud->State().GetInt("minigameActive") != 0) {
 		if ((usercmd.buttons & BUTTON_ATTACK) && !(oldButtons & BUTTON_ATTACK)) {
+			gameLocal.Printf("Think - Attack button pressed while minigame active");
 			HandleMinigameInput();
 		}
 	}
@@ -14363,6 +14371,8 @@ void idPlayer::UpdateCookingHud(idUserInterface* _hud) {
 void idPlayer::AttemptToCook(void) {
 	gameLocal.Printf("Player::AttemptToCook: function called for player '%s'\n",name.c_str());
 
+	
+
 	if (hud && hud->State().GetInt("minigameActive") != 0) {
 		gameLocal.Printf("Player::AttemptToCook: Cannot cook now, minigame active\n");
 		return;
@@ -14449,6 +14459,26 @@ void idPlayer::ConsumeIngredients(void) {
 
 void idPlayer::StartCookingSequence(void) {
 	gameLocal.Printf("Player::StartCookingSequence: Starting sequence for '%s'\n",currentOrder.recipeName.c_str());
+	
+
+//Minigame Money Bypass
+	float quality = 50.0f + (gameLocal.random.RandomFloat() * 50.0f);
+	int qualityPercent = static_cast<int>(quality);
+	gameLocal.Printf("Player::StartCookingSequence: Quality %d%%\n", qualityPercent);
+
+	float baseReward = 50.0f;
+	float qualityBonus = (quality - 50.0f) * 1.0f;
+	float finalReward = (baseReward + qualityBonus) * moneyMultiplier;
+
+	gameLocal.Printf("Player::StartCookingSequence: Base=%.2f, Bonus=%.2f, Multiplier=%.2f, Final=%.2f\n", baseReward, qualityBonus, moneyMultiplier, finalReward);
+
+	UpdateCash(finalReward);
+
+	ConsumeIngredients();
+	ClearCurrentOrder();
+	UpdateCookingHud(hud);
+	return;
+//end
 
 	const idDeclEntityDef* recipeDef = GetCurrentRecipeDef();
 	if (!recipeDef) {
@@ -14495,13 +14525,22 @@ void idPlayer::StartCookingSequence(void) {
 void idPlayer::StartSpecificMinigame(const char* minigameName) {
 	gameLocal.Printf("Player::StartSpecificMinigame: Starting minigame '%s'\n", minigameName);
 	minigameStartTime = gameLocal.time;
+	isMinigameActive = true;
 
 	if (hud) {
+		
 		idStr eventName = "start";
 		eventName += minigameName;
 		eventName += "Minigame";
-		gameLocal.Printf("Player::StartSpecificMinigame: Calling HUD event '%s'\n",eventName.c_str());
-		hud->HandleNamedEvent(eventName.c_str());
+		gameLocal.Printf("Player::StartSpecificMinigame: Calling HUD event '%s', hud pointer: %p\n",eventName.c_str(),hud);
+		if (!hud) {
+			gameLocal.Printf("Player::StartSpecificMinigame: HUD pointer is NULL\n");
+		}
+		else {
+			hud->HandleNamedEvent(eventName.c_str());
+		}
+		
+		
 	}
 	else {
 		gameLocal.Printf("Player::StartSpecificMinigame: No HUD available to start minigame '5s'\n",minigameName);
@@ -14575,7 +14614,8 @@ void idPlayer::HandleMinigameInput(void) {
 	gameLocal.Printf("Player::HandleMinigameInput: Attack pressed during active minigame\n");
 
 	if (hud) {
-		hud->HandleNamedEvent("handleMinigameInput");
+		gameLocal.Printf("Player::HandleMinigameInput:about to call generic hud event\n");
+		hud->HandleNamedEvent("minigameChopInput");
 	}
 	else {
 		gameLocal.Printf("Player::HandleMinigameInput: no HUD to handle input\n");
@@ -14584,6 +14624,7 @@ void idPlayer::HandleMinigameInput(void) {
 
 void idPlayer::Event_MinigameComplete(void) {
 	gameLocal.Printf("Player::Event_MinigameComplete: Received success event from GUI\n");
+	isMinigameActive = false;
 	if (hud && hud->State().GetInt("minigameActive") != 0) {
 		AdvanceMinigame();
 	}
@@ -14595,12 +14636,48 @@ void idPlayer::Event_MinigameComplete(void) {
 
 void idPlayer::Event_MinigameFail(void) {
 	gameLocal.Printf("Player::Event_MinigameFail: Recieved failure event from gui\n");
-
+	isMinigameActive = false;
 	if (hud && hud->State().GetInt("minigameActive") != 0) {
 		FailOrder();
 	}
 	else {
 		gameLocal.Printf("Player::Event_MinigameFail: Recieved Event but no minigame active according to hud state\n");
+	}
+}
+
+void idPlayer::PurchaseMoneyMultiplierUpgrade(void) {
+	float upgradeCost = 100.0f * moneyMultiplier;
+	int costInt = static_cast<int>(upgradeCost);
+	gameLocal.Printf("Player::PurchaseMoneyMultiplierUpgrade: Purchasing...");
+	gameLocal.Printf("Current Multiplier: %.2fx\n",moneyMultiplier);
+	gameLocal.Printf("Upgrade Cost: $%d\n",costInt);
+	gameLocal.Printf("Current Cash: $%.0f\n",buyMenuCash);
+
+	if (buyMenuCash >= costInt) {
+		UpdateCash(-static_cast<float>(costInt));
+		moneyMultiplier += 0.1f;
+		gameLocal.Printf("Player::PurchaseMoneyMultiplierUpgrade: Purchasing Success");
+		gameLocal.Printf("New Multiplier: %.2fx\n",moneyMultiplier);
+		gameLocal.Printf("Remaining Cash: $%.0f\n",buyMenuCash);
+	}
+	else {
+		gameLocal.Printf("Player::PurchaseMoneyMultiplierUpgrade: Purchasing Failed");
+	}
+
+}
+
+void idPlayer::UpdateCash(float amount) {
+
+
+	float oldcash = buyMenuCash;
+	buyMenuCash += amount;
+
+	if (hud) {
+
+		int cashInt = static_cast<int>(buyMenuCash);
+		idStr cashDisplay = va("$%d", cashInt);
+		hud->SetStateString("money_text", cashDisplay);
+		hud->StateChanged(gameLocal.time);
 	}
 }
 
