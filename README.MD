@@ -1,8 +1,18 @@
-Cooking Mod For Quake 4
+A Cooking Mod for Quake 4
 
-In this mod instead of fighting the strogg you will be cooking for them. There will be a very very hungry squib who will demand more and more food from you.
-You must take his order, gather the ingredients from the dispensers and cook their order.
-You will gain money based on how well you did on the cooking minigame.
-With the money you can purchase upgrades such as food quality which will grant more money per order, or cooking speed which will make things go faster.
+Features:
+Ingredients as gun ammo
+Collect ingredients from the boxes on the floor
+Click on floating box man for orders
+Cook at the cookstation to the right of the box man
+Play minigames to cook the order at the cookstation (*****DOES NOT WORK CANT GET IT TO WORK SORRY I GOTTA CUT MY LOSSES SOMEWHERE*****)
+Gain money based on a random quality when you cook (***Bypasses no minigames but still checks the gain more money for doing better***)
+Purchase a multiplier to your earnings at the upgrade box on the floor to the right of the floating box man
+Press Tab to view the help menu
 
-To setup the mod:
+Installation:
+
+Download Files
+Create a mods folder in Quake 4 directory
+extract the pak file into the mods folder
+run the game with the included shortcut
